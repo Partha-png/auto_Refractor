@@ -1,0 +1,22 @@
+def unused_variables(tree,code):
+    issues={}
+    assigned=set()
+    used=set()
+    lines=code.split()
+    for i,line in enumerate(lines,start=1):
+        if "=" in line and not line.strip().startswith("#"):
+            var=line.split("=")[0].strip()
+            assigned.add((var,i))
+    else:
+        for var in assigned:
+            if var in line:
+                used.add(var)
+    for var,line_no in assigned.items():
+        if var not in used:
+            issues.append({
+                "line": line_no,
+                "type": "Unused Variable",
+                "message": f"Variable '{var}' assigned but not used",
+                "severity": "warning"
+            })
+    return issues
