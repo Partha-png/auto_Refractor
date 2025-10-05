@@ -7,7 +7,7 @@ def unused_variables(tree,code):
         if "=" in line and not line.strip().startswith("#"):
             var=line.split("=")[0].strip()
             assigned.add((var,i))
-    for var in assigned:
+    for var,_ in assigned:
             for line in lines:
                 if var in line:
                     used.add(var)

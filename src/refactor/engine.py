@@ -22,7 +22,7 @@ load_dotenv()
 
 
 class Engine:
-    def __init__(self, use_groq=True):
+    def __init__(self, use_groq):
         if use_groq:
             groq_api_key = os.getenv("GROQ_API_KEY")  # FIX: Uppercase
             if not groq_api_key:
@@ -37,7 +37,7 @@ class Engine:
                 api_key=groq_api_key
             )
         else:
-            self.llm = Ollama(model="llama3",temperature=0)
+           self.llm = Ollama(model="llama3",temperature=0)
         self.tools = [load_file, parse_code, lint_code, analyze_complexity]
         self.agent = create_react_agent(self.llm, self.tools)
         self.refactor_prompt = ChatPromptTemplate.from_messages([
@@ -160,7 +160,7 @@ Refactored Code:"""
         
         return code.strip()
     
-    def review_code(self, file_path: str):
+    def review_code(self, file_path: str,code):
         """
         Get a concise code review (no refactoring)
         
@@ -170,7 +170,7 @@ Refactored Code:"""
         Returns:
             Review as string with prioritized issues
         """
-        query = f"""Review {file_path} and provide:
+        query = f"""Review {file_path,code} and provide:
 1. Top 3-6 most critical issues
 2. Priority level for each (Critical/High/Medium/Low)
 3. Brief fix suggestion for each
@@ -189,3 +189,19 @@ Use the lint_code and analyze_complexity tools."""
             
         except Exception as e:
             return f"Error during review: {str(e)}"
+if __name__ == "__main__":
+    engine = Engine(use_groq=True)
+    test_file = "src/refactor/sample.py"
+    try:
+        with open(test_file, "r", encoding="utf-8") as f:
+            code = f.read()
+    except Exception as e:
+        code = ""
+        print(f"Error reading {test_file}: {str(e)}")
+    
+    result = engine.analyze_and_refactor(test_file,code)
+    print("Issues Found:\n", result["issues"])
+    print("\nRefactored Code:\n", result["refactored_code"])
+    
+    review = engine.review_code(test_file)
+    print("\nCode Review:\n", review)
