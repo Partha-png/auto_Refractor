@@ -3,7 +3,7 @@ class Complexity:
         self.code=code
         self.tree=tree
         self.lines=code.splitlines()
-    def run(self,code,tree):
+    def run(self):
         return{
             "cyclomatic":self.cyclomatic(),
             "loc":self.line_of_code(),

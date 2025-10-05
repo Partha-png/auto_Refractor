@@ -13,7 +13,7 @@ class Linter:
             unused_imports,
             check_too_many_args,
             dangerous_functions,
-            check_function_length,src.
+            check_function_length,
             deep_nesting
         ]
         self.rules= rules or default_rules

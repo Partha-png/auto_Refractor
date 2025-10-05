@@ -4,15 +4,17 @@ from src.ingestion.loader import load_files_from_directory
 from src.ingestion.parser import parser_code
 class LinterAgent:
     def __init__(self,tree,code,rules=None):
+        self.tree = tree 
+        self.code = code
         self.linter=Linter(tree,code,rules)
     def run(self):
-        issues=self.linter.run()
+        issues=self.linter.run(self.tree, self.code)
         return{"agent invoked":"linter agent","issues":issues}
 class ComplexityAgent:
     def __init__(self,code,tree):
         self.complexity=Complexity(code,tree)
     def run(self):
-        metrics=self.complexity.run()
+        metrics=self.complexity.run(self.code, self.tree)
         return {"agent invoked":"complexity agent","metrics":metrics}
 class LoaderAgent:
     def __init__ (self,file_path):

@@ -1,6 +1,6 @@
 def check_function_length(tree,code,max_length=50):
     issues=[]
-    lines=code.split()
+    lines=code.splitlines()
     for i,line in enumerate(lines,start=1):
         if line.strip().startswith("def"):
             start=i
@@ -9,7 +9,6 @@ def check_function_length(tree,code,max_length=50):
                     break
                 length=j-start
                 if length>max_length:
-                    if length>max_length:
                         issues.append({
                             "line": start,
                             "type": "Function Length",

@@ -2,11 +2,11 @@ from langchain.tools import tool
 from src.refactor.llm_Agent import LinterAgent, ComplexityAgent, LoaderAgent, ParserAgent
 from src.ingestion.parser import parser_code
 @tool("load_file",return_direct=False)
-def load_file(file_path:str):
+def load_file(file_path):
     """ creating the loader file tool """
     return LoaderAgent(file_path).run()
 @tool("parse_Code",return_direct=False)
-def parse_code(file_path:str):
+def parse_code(file_path):
     """ creating the parser file tool """
     return ParserAgent(file_path).run()
 @tool("lint_code",return_direct=True)

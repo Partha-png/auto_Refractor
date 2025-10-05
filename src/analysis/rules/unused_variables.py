@@ -1,17 +1,17 @@
 def unused_variables(tree,code):
-    issues={}
+    issues=[]
     assigned=set()
     used=set()
-    lines=code.split()
+    lines=code.splitlines()
     for i,line in enumerate(lines,start=1):
         if "=" in line and not line.strip().startswith("#"):
             var=line.split("=")[0].strip()
             assigned.add((var,i))
-    else:
-        for var in assigned:
-            if var in line:
-                used.add(var)
-    for var,line_no in assigned.items():
+    for var in assigned:
+            for line in lines:
+                if var in line:
+                    used.add(var)
+    for var,line_no in assigned:
         if var not in used:
             issues.append({
                 "line": line_no,

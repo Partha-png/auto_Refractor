@@ -1,6 +1,6 @@
 def unused_imports(tree,code):
     issues=[]
-    lines=code.split()
+    lines=code.splitlines()
     imported=set()
     used=set()
     for i,line in enumerate(lines,start=1):
@@ -16,7 +16,7 @@ def unused_imports(tree,code):
                 imported.add((name,i))
     for i,line in enumerate(lines,start=1):
         for(name,_) in imported:
-            if name in line and not line.strip().startswith("import","from"):
+            if name in line and not (line.strip().startswith("import") or line.strip().startswith("from")):
                 used.add(name)
     for name,line_no in imported:
         if name not in used:

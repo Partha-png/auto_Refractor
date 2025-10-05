@@ -1,6 +1,6 @@
 def check_too_many_args(tree,code,max_args=3):
     issues=[]
-    lines=code.split()
+    lines=code.splitlines()
     for i,line in enumerate(lines,start=1):
         if line.strip().startswith("def"):
             arg_count=line.count(",")+1 if"(" in line else 0

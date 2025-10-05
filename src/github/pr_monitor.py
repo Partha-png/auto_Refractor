@@ -21,18 +21,19 @@ class pr_monitor:
                 if not any(filename.endswith(ext) for ext in [".py", ".js", ".cpp", ".java", ".c", ".rb", ".go", ".rs"]):
                      continue         
                 try:
-                    analysis=self.engine.analyze_and_refactor(file_path=filename)
+                    content,sha=self.client.get_file_content(filename,pr.head.ref)
+                    analysis=self.engine.analyze_and_refactor(file_path=filename,code=content)
                     results.append((filename,analysis))
                 except Exception as e:
                     print(f"error processing file {filename} in pr {pr.number}: {e}")
                     continue
-                if results:
+            if results:
                     comment="code suggestion "
                     self.client.comment_on_pr(pr,comment)
-                else:
+            else:
                  print(f"no suggestions for pr {pr.number}")
 if __name__=="__main__":
-    repo="Partha-png/auto_Refractor"
+    repo="microsoft/Web-Dev-For-Beginners"
     base_branch="main"
     monitor=pr_monitor(repo,base_branch)
     monitor.analyze_open_prs()
