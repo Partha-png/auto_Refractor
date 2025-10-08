@@ -24,7 +24,7 @@ class pr_monitor:
                 try:
                     content,sha=self.client.get_file_content(filename,pr.head.ref)
                     analysis=self.engine.analyze_and_refactor(file_path=filename,code=content)
-                    review_result=self.engine.review_code(file_path=file_name,code=content)
+                    review_result=self.engine.review_code(file_path=filename,code=content)
                     review.append((filename,review_result))
                     results.append((filename,analysis))
                 except Exception as e:

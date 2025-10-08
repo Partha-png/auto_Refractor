@@ -69,7 +69,7 @@ Refactored Code:"""
     def analyze_file(self, file_path: str,code):
         query = f"Analyze {file_path,code} using lint_code and analyze_complexity tools"
         try:
-            result = self.agent.invoke({"messages": [HumanMessage(content=query)]})
+            result = self.agent.invoke({"messages": query})
             if isinstance(result, dict) and 'messages' in result:
                 messages = result['messages']
                 if messages:
@@ -93,7 +93,7 @@ Refactored Code:"""
         lint_query = f"Load {file_path,code}, then run lint_code and analyze_complexity on it"
         
         try:
-            lint_result = self.agent.invoke({"messages": [HumanMessage(content=lint_query)]})
+            lint_result = self.agent.invoke({"messages": lint_query})
             
             # Extract analysis from agent response
             if isinstance(lint_result, dict) and 'messages' in lint_result:
@@ -203,5 +203,5 @@ if __name__ == "__main__":
     print("Issues Found:\n", result["issues"])
     print("\nRefactored Code:\n", result["refactored_code"])
     
-    review = engine.review_code(test_file)
+    review = engine.review_code(test_file,code)
     print("\nCode Review:\n", review)
