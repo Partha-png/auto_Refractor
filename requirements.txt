@@ -1,0 +1,10 @@
+tree-sitter
+tree-sitter-languages
+langchain
+langchain-groq
+langchain-community
+langgraph
+PyGithub
+python-dotenv
+torch
+pydantic

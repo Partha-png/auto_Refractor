@@ -1,9 +1,10 @@
-from src.github.client import Githubclient
+from src.gh_integration.client import Githubclient
 from src.refactor.engine import Engine
 class pr_monitor:
     def __init__(self,repo,base_branch):
         self.client=Githubclient(repo,base_branch)
         self.engine=Engine(use_groq=True)
+        
     def analyze_open_prs(self):
         """get all the open prs and analyze them"""
         prs=self.client.get_open_pull_requests()
