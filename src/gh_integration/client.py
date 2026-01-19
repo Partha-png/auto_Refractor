@@ -5,7 +5,7 @@ class Githubclient:
     def __init__(self,repo:str,base_branch:str="main"):
         """Github client wrapper for pull req ,file,commit"""
         load_dotenv()
-        token=os.getenv('github_token')
+        token=os.getenv('GITHUB_TOKEN')  # Fixed: uppercase to match Railway
         if not token:
             raise ValueError("GitHub token not found in environment variables.")
         self.repo_name=repo
