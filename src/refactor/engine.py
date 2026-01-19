@@ -128,14 +128,8 @@ Refactored Code:"""
             logger.error(f"Error during analysis: {e}")
             issues = f"Error during analysis: {str(e)}"
         
-        try:
-            original_code = Path(file_path).read_text(encoding="utf-8")
-        except Exception as e:
-            logger.error(f"Error reading file {file_path}: {e}")
-            return {
-                "issues": issues,
-                "refactored_code": f"Error reading file: {str(e)}"
-            }
+        # Use the code parameter instead of reading from disk
+        original_code = code
         
         logger.info("Generating refactored code with LLM")
         try:
