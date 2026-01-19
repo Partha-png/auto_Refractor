@@ -1,103 +1,391 @@
-## Auto-Refractor
-Auto-Refractor is an intelligent code analysis and refactoring system that automatically reviews GitHub pull requests. It leverages AI-powered agents to detect code issues, suggest improvements, and generate refactored versions while maintaining code functionality and best practices.
-The project was inspired by a personal goal: to automate code quality reviews and reduce manual effort in maintaining clean, efficient codebases, while exploring the capabilities of LLM-based code analysis and tree-sitter parsing.
+# Auto-Refractor
 
-🔍 Automated PR Analysis: scans open pull requests for code quality issues
-🧠 AI-Powered Refactoring: generates improved code using LLMs (Groq/Ollama)
-🎯 Multi-Rule Linting: detects unused variables, security issues, and complexity
-📊 Complexity Metrics: measures cyclomatic complexity, nesting depth, and LOC
-🔗 GitHub Integration: seamless PR commenting and branch management
+**Automated Code Refactoring Bot powered by LLMs**
 
-## 🛠️ Installation
+Auto-Refractor is an intelligent GitHub bot that automatically analyzes and refactors code in pull requests, providing quality metrics and creating clean, maintainable code suggestions.
 
-1. Clone the repository:
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+---
+
+## Features
+
+- **Automated Code Analysis**: Detects code quality issues, complexity, and maintainability problems
+- **LLM-Powered Refactoring**: Uses Groq's LLaMA models to intelligently refactor code
+- **Quality Metrics**: Calculates and compares code quality scores before and after refactoring
+- **Automatic PR Creation**: Creates new pull requests with refactored code
+- **Multi-Language Support**: Currently supports Python, with extensibility for JavaScript, Java, and more
+- **GitHub Integration**: Seamless webhook integration with GitHub repositories
+- **Professional Output**: Clean, production-ready code without LLM artifacts
+
+---
+
+## How It Works
+
 ```
-git clone https://github.com/partha-png/auto_Refractor.git
-cd auto_Refractor
+┌─────────────────┐
+│  Developer      │
+│  Creates PR     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  GitHub Webhook │
+│  Triggers Bot   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Auto-Refractor │
+│  Analyzes Code  │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  LLM Refactors  │
+│  Code (Groq)    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Quality Scores │
+│  Calculated     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  New PR Created │
+│  with Results   │
+└─────────────────┘
 ```
 
-2. Create a virtual environment and activate it:
-```
-python -m venv venv
-venv\Scripts\activate
-```
+---
 
-3. Install the required dependencies:
-```
-pip install -r requirements.txt
-```
-4. Set up environment variables: Create a .env file in the root directory and add your API keys:
-```
-GITHUB_TOKEN=your_github_personal_access_token
-GROQ_API_KEY=your_groq_api_key
-```
-## 🏗️ Project Structure
+## Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- GitHub Personal Access Token
+- Groq API Key
+- Railway account (for deployment)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Partha-png/auto_Refractor.git
+   cd auto_Refractor
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Set up environment variables**
+   
+   Create a `.env` file:
+   ```env
+   GITHUB_TOKEN=your_github_personal_access_token
+   GROQ_API_KEY=your_groq_api_key
+   GITHUB_WEBHOOK_SECRET=your_webhook_secret
+   LLM_MODEL=llama-3.1-8b-instant
+   LLM_PROVIDER=groq
+   ```
+
+4. **Run locally**
+   ```bash
+   uvicorn src.webhook.server:app --host 0.0.0.0 --port 8000
+   ```
+
+---
+
+## Deployment
+
+### Deploy to Railway
+
+1. **Push to GitHub**
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
+   ```
+
+2. **Deploy on Railway**
+   - Visit [railway.app](https://railway.app)
+   - Create new project from GitHub repo
+   - Add environment variables in Railway dashboard
+   - Railway will auto-deploy
+
+3. **Configure GitHub Webhook**
+   - Go to your repository → Settings → Webhooks
+   - Add webhook:
+     - **Payload URL**: `https://your-railway-url.up.railway.app/webhook`
+     - **Content type**: `application/json`
+     - **Secret**: Your `GITHUB_WEBHOOK_SECRET`
+     - **Events**: Select "Pull requests"
+
+---
+
+## Usage
+
+### Basic Workflow
+
+1. **Create a Pull Request** in your repository with code that needs refactoring
+2. **Auto-Refractor automatically**:
+   - Receives the webhook event
+   - Analyzes the code for quality issues
+   - Refactors the code using LLM
+   - Calculates quality metrics
+   - Creates a new PR with refactored code
+   - Comments on the original PR with a link
+
+3. **Review the refactored PR** and merge if satisfied
+
+### Example
+
+**Original PR**: Contains code with deep nesting, too many parameters, unused imports
+
+**Auto-Refractor creates**:
+- New PR titled: "Refactored: [Original PR Title]"
+- Contains cleaned, refactored code
+- Includes quality score comparison table
+- Links back to original PR
+
+---
+
+## Architecture
+
+### Project Structure
+
 ```
 auto_Refractor/
-├── src/                        # Source code
-│   ├── analysis/              # Code analysis components
-│   │   ├── rules/            # Linting rule implementations
-│   │   ├── complexity.py     # Complexity analyzer
-│   │   └── linter.py         # Main linting engine
-│   ├── github/               # GitHub API integration
-│   │   ├── client.py        # GitHub client wrapper
-│   │   └── pr_monitor.py    # PR monitoring system
-│   ├── ingestion/           # Code parsing and loading
-│   │   ├── loader.py        # File loader utilities
-│   │   └── parser.py        # Tree-sitter parser
-│   └── refactor/            # Refactoring engine
-│       ├── engine.py        # Main refactoring orchestrator
-│       ├── llm_Agent.py     # LLM agent implementations
-│       └── tools.py         # LangChain tool definitions
-├── sample.py                  # Sample Python file for testing
-├── sample.js                  # Sample JavaScript file
-├── sample.cpp                 # Sample C++ file
-├── requirements.txt           # Python dependencies
-└── README.md                  # This file
+├── src/
+│   ├── config/           # Configuration and settings
+│   ├── gh_integration/   # GitHub API client and PR creator
+│   ├── ingestion/        # Code loading and parsing
+│   ├── refactor/         # Refactoring engine and LLM agents
+│   ├── scoring/          # Code quality metrics
+│   ├── utils/            # Helper functions and logging
+│   └── webhook/          # FastAPI webhook server
+├── Procfile              # Railway deployment config
+├── railway.json          # Railway build settings
+├── requirements.txt      # Python dependencies
+└── README.md
 ```
-## 🤖 How It Works
 
-1. PR Monitoring:
+### Key Components
 
-Fetches all open pull requests from a repository
-Identifies changed files in each PR
-Filters for supported programming languages
+#### 1. Webhook Server (`src/webhook/`)
+- FastAPI-based server
+- Handles GitHub webhook events
+- Validates webhook signatures
+- Processes PRs in background tasks
 
+#### 2. Refactoring Engine (`src/refactor/`)
+- LLM-powered code analysis
+- Multi-agent architecture (Linter, Complexity, Parser)
+- Groq LLaMA integration
+- Code cleaning and validation
 
-2. Code Analysis:
+#### 3. GitHub Integration (`src/gh_integration/`)
+- PyGithub wrapper
+- PR creation and management
+- File content fetching
+- Comment posting
 
-Parses code using tree-sitter for AST generation
-Runs multiple linting rules in parallel
-Calculates complexity metrics
-Generates detailed issue reports
+#### 4. Scoring System (`src/scoring/`)
+- BLEU score calculation
+- Cyclomatic complexity
+- Maintainability index
+- Lines of code metrics
+- Perplexity analysis
 
+---
 
-3. AI Refactoring:
+## Configuration
 
-Sends code and issues to LLM (Groq/Ollama)
-Receives refactored version, maintaining functionality
-Validates and cleans LLM output
-Post suggestions as PR comments
+### Environment Variables
 
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `GITHUB_TOKEN` | GitHub Personal Access Token | Yes | - |
+| `GROQ_API_KEY` | Groq API Key for LLM | Yes | - |
+| `GITHUB_WEBHOOK_SECRET` | Webhook signature secret | Yes | - |
+| `LLM_MODEL` | LLM model to use | No | `llama-3.1-8b-instant` |
+| `LLM_PROVIDER` | LLM provider (groq/ollama) | No | `groq` |
+| `LLM_TEMPERATURE` | LLM temperature | No | `0.7` |
+| `LLM_MAX_TOKENS` | Max tokens for LLM | No | `4096` |
 
+### Supported Languages
 
-## 📖 Research Inspiration
-Auto-Refractor's architecture leverages modern approaches in code analysis:
-[1] "Tree-sitter: A New Parsing System for Programming Tools" - GitHub Engineering, 2018
-[2] "Large Language Models for Code: Survey and Open Problems" - Fan et al., 2023
-Auto-Refractor applies these ideas by:
+- ✅ Python (`.py`)
+- 🚧 JavaScript (`.js`) - Planned
+- 🚧 Java (`.java`) - Planned
+- 🚧 C++ (`.cpp`) - Planned
 
-Using tree-sitter for language-agnostic AST parsing
-Implementing LLM-based code understanding and generation
-Combining static analysis with AI-powered suggestions
+---
 
-## 🛡️ License
-This project is licensed under the Apache License 2.0 - please take a look at the LICENSE file for details.
+## API Reference
 
-## 🙏 Acknowledgments
+### Webhook Endpoints
 
-Built with LangChain and LangGraph
-Powered by Groq API and Ollama
-AST parsing via Tree-sitter
-GitHub integration using PyGithub
-LLM models: DeepSeek-R1 and Llama3
+#### `POST /webhook`
+Receives GitHub webhook events for pull requests.
+
+**Headers:**
+- `X-Hub-Signature-256`: GitHub webhook signature
+- `X-GitHub-Event`: Event type (should be `pull_request`)
+
+**Events Handled:**
+- `pull_request.opened`
+- `pull_request.synchronize`
+- `pull_request.reopened`
+
+#### `GET /health`
+Health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "service": "auto-refractor-webhook"
+}
+```
+
+---
+
+## Development
+
+### Running Tests
+
+```bash
+pytest tests/
+```
+
+### Code Quality
+
+```bash
+# Format code
+black src/
+
+# Lint
+flake8 src/
+
+# Type checking
+mypy src/
+```
+
+### Local Development
+
+1. **Install development dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run with hot reload**
+   ```bash
+   uvicorn src.webhook.server:app --reload
+   ```
+
+3. **Use ngrok for webhook testing**
+   ```bash
+   ngrok http 8000
+   ```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Bot creates infinite PRs**
+- Ensure bot-created PRs have "Refactored:" prefix in title
+- Bot automatically skips PRs with this prefix
+
+**Webhook not triggering**
+- Check webhook delivery in GitHub settings
+- Verify `GITHUB_WEBHOOK_SECRET` matches
+- Check Railway logs for errors
+
+**LLM errors**
+- Verify `GROQ_API_KEY` is valid
+- Check Groq API rate limits
+- Ensure model name is correct
+
+**File not found errors**
+- Bot uses in-memory code from GitHub
+- No local file system access needed
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow PEP 8 style guide
+- Add tests for new features
+- Update documentation
+- Keep commits atomic and descriptive
+
+---
+
+## Roadmap
+
+- [ ] Support for JavaScript/TypeScript
+- [ ] Support for Java
+- [ ] Custom refactoring rules
+- [ ] Integration with CI/CD pipelines
+- [ ] Web dashboard for analytics
+- [ ] Multi-repository support
+- [ ] Configurable quality thresholds
+- [ ] Slack/Discord notifications
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- **Groq** - For providing fast LLM inference
+- **PyGithub** - For GitHub API integration
+- **FastAPI** - For the webhook server framework
+- **LangChain** - For LLM orchestration
+- **Tree-sitter** - For code parsing
+
+---
+
+## Contact
+
+**Partha Sarathi**
+- GitHub: [@Partha-png](https://github.com/Partha-png)
+- Project Link: [https://github.com/Partha-png/auto_Refractor](https://github.com/Partha-png/auto_Refractor)
+
+---
+
+## Support
+
+If you find this project helpful, please consider:
+- ⭐ Starring the repository
+- 🐛 Reporting bugs
+- 💡 Suggesting new features
+- 🤝 Contributing code
+
+---
+
+**Made with ❤️ by Partha Sarathi**
