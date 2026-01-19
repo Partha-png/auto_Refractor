@@ -1,7 +1,10 @@
 from tree_sitter import Parser
 from src.ingestion.loader import load_files_from_directory
-from tree_sitter_languages import get_parser
+from tree_sitter_languages import get_language  # ← Changed from get_parser
 from src.ingestion.loader import EXTENSION_LANGUAGE_MAP
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 def parser_code(file_paths):
     """Parse one or more files into ASTs."""
     results = load_files_from_directory(file_paths)
@@ -17,10 +20,14 @@ def parser_code(file_paths):
             continue
 
         try:
-            parser = get_parser(lang)
-            file["tree"] = parser.parse(content.encode("utf-8"))
+            # get_language returns a Language object
+            # Create Parser and set the language
+            language = get_language(lang)
+            tree_parser = Parser()
+            tree_parser.set_language(language)
+            file["tree"] = tree_parser.parse(content.encode("utf-8"))
         except Exception as e:
-            print(f"Could not parse {path} ({lang}): {e}")
+            logger.error(f"Could not parse {path} ({lang}): {e}")
             file["tree"] = None
 
     return results

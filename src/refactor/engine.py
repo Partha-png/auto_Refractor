@@ -1,9 +1,4 @@
-"""
-Refactoring Engine - AI-powered code analysis and refactoring
-"""
-
-import os
-from dotenv import load_dotenv
+from pathlib import Path
 
 from langchain_groq import ChatGroq
 from langchain_community.llms import Ollama
@@ -16,30 +11,45 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage
 
 from src.refactor.tools import load_file, parse_code, lint_code, analyze_complexity
+from src.config.settings import settings
+from src.utils.logger import get_logger
+from src.utils.helpers import clean_code_output
+from src.scoring.scorer import CodeScorer
+from src.refactor.report_generator import format_score_report, generate_comparison_table
 
-# Load environment variables
-load_dotenv()
+logger = get_logger(__name__)
 
 
 class Engine:
-    def __init__(self, use_groq):
+    def __init__(self, use_groq=None):
+        # Use settings if not specified
+        if use_groq is None:
+            use_groq = settings.use_groq
+        
         if use_groq:
-            groq_api_key = os.getenv("GROQ_API_KEY")  # FIX: Uppercase
-            if not groq_api_key:
+            if not settings.groq_api_key:
                 raise ValueError(
                     "GROQ_API_KEY not found in environment variables. "
                     "Add it to your .env file or set use_groq=False"
                 )
             
+            logger.info(f"Initializing Groq LLM with model: {settings.llm_model}")
             self.llm = ChatGroq(
-                model="deepseek-r1-distill-llama-70b",
-                temperature=0,
-                api_key=groq_api_key
+                model=settings.llm_model,
+                temperature=settings.llm_temperature,
+                api_key=settings.groq_api_key
             )
         else:
-           self.llm = Ollama(model="llama3",temperature=0)
+            logger.info("Initializing Ollama LLM")
+            self.llm = Ollama(model="llama3", temperature=settings.llm_temperature)
+        
         self.tools = [load_file, parse_code, lint_code, analyze_complexity]
         self.agent = create_react_agent(self.llm, self.tools)
+        
+        # Initialize scorer
+        self.scorer = CodeScorer()
+        logger.info("Initialized CodeScorer")
+        
         self.refactor_prompt = ChatPromptTemplate.from_messages([
             SystemMessagePromptTemplate.from_template(
                 """You are a professional code-refactoring assistant.
@@ -65,8 +75,12 @@ Issues Found:
 Refactored Code:"""
             )
         ])
+        
+        logger.info("Refactoring engine initialized successfully")
     
-    def analyze_file(self, file_path: str,code):
+    def analyze_file(self, file_path: str, code: str):
+        """Analyze file using linter and complexity tools."""
+        logger.info(f"Analyzing file: {file_path}")
         query = f"Analyze {file_path,code} using lint_code and analyze_complexity tools"
         try:
             result = self.agent.invoke({"messages": query})
@@ -77,22 +91,25 @@ Refactored Code:"""
                     return last_message.content
             return str(result)
         except Exception as e:
+            logger.error(f"Error during analysis: {e}")
             return f"Error during analysis: {str(e)}"
     
-    def analyze_and_refactor(self, file_path: str,code):
+    def analyze_and_refactor(self, file_path: str, code: str):
         """
         Run analysis, then refactor code
         
         Args:
             file_path: Path to file to analyze and refactor
+            code: Source code content
             
         Returns:
             Dict with 'issues' and 'refactored_code'
         """
-        print(f"📊 Analyzing {file_path}...")
+        logger.info(f"Starting analysis and refactoring for: {file_path}")
         lint_query = f"Load {file_path,code}, then run lint_code and analyze_complexity on it"
         
         try:
+            logger.debug("Running linting and complexity analysis")
             lint_result = self.agent.invoke({"messages": lint_query})
             
             # Extract analysis from agent response
@@ -104,18 +121,23 @@ Refactored Code:"""
                     issues = "No issues found"
             else:
                 issues = str(lint_result)
+            
+            logger.info("Analysis complete")
         
         except Exception as e:
+            logger.error(f"Error during analysis: {e}")
             issues = f"Error during analysis: {str(e)}"
+        
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                original_code = f.read()
+            original_code = Path(file_path).read_text(encoding="utf-8")
         except Exception as e:
+            logger.error(f"Error reading file {file_path}: {e}")
             return {
                 "issues": issues,
                 "refactored_code": f"Error reading file: {str(e)}"
             }
-        print(f"🔧 Generating refactored code...")
+        
+        logger.info("Generating refactored code with LLM")
         try:
             refactor_chain = self.refactor_prompt | self.llm
             response = refactor_chain.invoke({
@@ -126,9 +148,49 @@ Refactored Code:"""
                 refactored_code = response.content
             else:
                 refactored_code = str(response)
-            refactored_code = self._clean_code_output(refactored_code)
+            
+            # Use helper function for cleaning
+            refactored_code = clean_code_output(refactored_code)
+            logger.info("Refactoring complete")
+            
+            # Calculate scores
+            try:
+                logger.info("Calculating quality scores")
+                # Detect language from file extension
+                language = "python"  # Default
+                if file_path.endswith(".js"):
+                    language = "javascript"
+                elif file_path.endswith((".java", ".cpp", ".c")):
+                    language = "java"
+                
+                # Calculate scores for original and refactored code
+                comparison = self.scorer.compare_code(
+                    original=original_code,
+                    refactored=refactored_code,
+                    language=language
+                )
+                
+                logger.info(f"Scores calculated - Improvement: {comparison.improvement:.1f}")
+                
+                return {
+                    "issues": issues,
+                    "refactored_code": refactored_code,
+                    "scores": {
+                        "original": comparison.original_scores,
+                        "refactored": comparison.refactored_scores,
+                        "improvement": comparison.improvement
+                    }
+                }
+            except Exception as e:
+                logger.warning(f"Error calculating scores: {e}")
+                # Return without scores if scoring fails
+                return {
+                    "issues": issues,
+                    "refactored_code": refactored_code
+                }
             
         except Exception as e:
+            logger.error(f"Error during refactoring: {e}")
             refactored_code = f"Error during refactoring: {str(e)}"
         
         return {
@@ -136,40 +198,18 @@ Refactored Code:"""
             "refactored_code": refactored_code
         }
     
-    def _clean_code_output(self, code: str) -> str:
-        """
-        Remove markdown fences and extra formatting from LLM output
-        
-        Args:
-            code: Raw LLM output
-            
-        Returns:
-            Clean code string
-        """
-        # Remove markdown code fences
-        code = code.strip()
-        
-        if code.startswith("```"):
-            lines = code.split("\n")
-            # Remove first line (```python or ```)
-            lines = lines[1:]
-            # Remove last line if it's ```
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            code = "\n".join(lines)
-        
-        return code.strip()
-    
-    def review_code(self, file_path: str,code):
+    def review_code(self, file_path: str, code: str):
         """
         Get a concise code review (no refactoring)
         
         Args:
             file_path: Path to file to review
+            code: Source code content
             
         Returns:
             Review as string with prioritized issues
         """
+        logger.info(f"Reviewing code for: {file_path}")
         query = f"""Review {file_path,code} and provide:
 1. Top 3-6 most critical issues
 2. Priority level for each (Critical/High/Medium/Low)
@@ -183,25 +223,47 @@ Use the lint_code and analyze_complexity tools."""
             if isinstance(result, dict) and 'messages' in result:
                 messages = result['messages']
                 if messages:
-                    return messages[-1].content
+                    review = messages[-1].content
+                    logger.info("Code review complete")
+                    return review
             
             return str(result)
             
         except Exception as e:
+            logger.error(f"Error during review: {e}")
             return f"Error during review: {str(e)}"
+
+
 if __name__ == "__main__":
+    from src.utils.logger import setup_logging
+    
+    # Setup logging for testing
+    setup_logging(log_level="INFO")
+    
     engine = Engine(use_groq=True)
     test_file = "src/refactor/sample.py"
+    
     try:
-        with open(test_file, "r", encoding="utf-8") as f:
-            code = f.read()
+        code = Path(test_file).read_text(encoding="utf-8")
+        logger.info(f"Loaded test file: {test_file}")
     except Exception as e:
+        logger.error(f"Error reading {test_file}: {e}")
         code = ""
-        print(f"Error reading {test_file}: {str(e)}")
     
-    result = engine.analyze_and_refactor(test_file,code)
-    print("Issues Found:\n", result["issues"])
-    print("\nRefactored Code:\n", result["refactored_code"])
-    
-    review = engine.review_code(test_file,code)
-    print("\nCode Review:\n", review)
+    if code:
+        result = engine.analyze_and_refactor(test_file, code)
+        print("\n" + "="*50)
+        print("Issues Found:")
+        print("="*50)
+        print(result["issues"])
+        
+        print("\n" + "="*50)
+        print("Refactored Code:")
+        print("="*50)
+        print(result["refactored_code"])
+        
+        print("\n" + "="*50)
+        print("Code Review:")
+        print("="*50)
+        review = engine.review_code(test_file, code)
+        print(review)

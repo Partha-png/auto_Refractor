@@ -110,3 +110,18 @@ analysis_output/
 lint_reports/
 complexity_results/
 __temp__/
+
+# =========================
+# DEPLOYMENT
+# =========================
+# Railway
+.railway/
+
+# Testing (removed tests folder)
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+*.swp
+*~
