@@ -135,11 +135,44 @@ def clean_code_output(code: str) -> str:
     # Extract from markdown if present
     code = extract_code_from_markdown(code)
     
-    # Remove common LLM artifacts
-    code = code.replace("Here's the refactored code:", "")
-    code = code.replace("Refactored code:", "")
+    # Remove common LLM prefixes/explanations
+    prefixes_to_remove = [
+        "Here's the refactored code:",
+        "Refactored code:",
+        "Here is the refactored code:",
+        "The refactored code is:",
+        "Here's the improved version:",
+        "Improved code:",
+        "Here's the code:",
+        "```python",
+        "```",
+    ]
     
-    # Remove leading/trailing whitespace
-    code = code.strip()
+    for prefix in prefixes_to_remove:
+        code = code.replace(prefix, "")
+    
+    # Remove lines that are just explanations (common LLM patterns)
+    lines = code.split('\n')
+    cleaned_lines = []
+    skip_next = False
+    
+    for line in lines:
+        stripped = line.strip()
+        
+        # Skip empty lines at the start
+        if not cleaned_lines and not stripped:
+            continue
+            
+        # Skip lines that look like explanations
+        if any(stripped.lower().startswith(phrase) for phrase in [
+            "this code", "the code", "i've refactored", "i refactored",
+            "the refactored", "here's", "here is", "note:", "explanation:"
+        ]):
+            continue
+            
+        cleaned_lines.append(line)
+    
+    # Join and strip
+    code = '\n'.join(cleaned_lines).strip()
     
     return code

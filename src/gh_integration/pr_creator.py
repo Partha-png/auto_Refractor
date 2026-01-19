@@ -36,7 +36,7 @@ def format_score_comparison(
         str: Markdown formatted table
     """
     if not original_scores or not refactored_scores:
-        return "📊 **Quality scores will be calculated soon.**"
+        return "**Quality scores will be calculated soon.**"
     
     # Calculate changes
     def get_change(metric: str) -> str:
@@ -45,14 +45,14 @@ def format_score_comparison(
         diff = refact - orig
         
         if diff > 0:
-            return f"+{diff:.1f} ✅"
+            return f"+{diff:.1f}"
         elif diff < 0:
-            return f"{diff:.1f} ⚠️"
+            return f"{diff:.1f}"
         else:
-            return "0.0 ➖"
+            return "0.0"
     
     # Build table
-    table = """## 📊 Quality Score Comparison
+    table = """## Quality Score Comparison
 
 | Metric | Before | After | Change |
 |--------|--------|-------|--------|
@@ -89,29 +89,29 @@ def format_pr_body(
     Returns:
         str: Markdown formatted PR body
     """
-    body = f"""## 🤖 Auto-Refractor Results
+    body = f"""## Auto-Refractor Results
 
 Refactored code from PR #{original_pr_number}: **{original_pr_title}**
 
 {score_comparison}
 
-### 📝 Files Refactored
+### Files Refactored
 
 """
     
     # Add file list
     for filename in files_refactored:
-        body += f"- ✅ `{filename}`\n"
+        body += f"- `{filename}`\n"
     
     # Add issues fixed (if provided)
     if issues_fixed:
-        body += "\n### 🔍 Issues Fixed\n\n"
+        body += "\n### Issues Fixed\n\n"
         for issue in issues_fixed:
             body += f"- {issue}\n"
     
     # Add footer
     body += f"""
-### 🔗 Links
+### Links
 
 - Original PR: [#{original_pr_number} {original_pr_title}](../pull/{original_pr_number})
 - Refactoring Bot: [Auto-Refractor](https://github.com/your-repo/auto-refractor)
@@ -212,7 +212,7 @@ async def create_refactored_pr(
         )
         
         # Step 5: Create PR
-        pr_title = f"🤖 Refactored: {original_pr_title}"
+        pr_title = f"Refactored: {original_pr_title}"
         
         logger.info(f"Creating PR: {pr_title}")
         pr = client.create_pull_request(

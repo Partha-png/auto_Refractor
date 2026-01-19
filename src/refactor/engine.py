@@ -159,8 +159,8 @@ Refactored Code:"""
                 
                 # Calculate scores for original and refactored code
                 comparison = self.scorer.compare_code(
-                    original=original_code,
-                    refactored=refactored_code,
+                    original_code=original_code,
+                    refactored_code=refactored_code,
                     language=language
                 )
                 

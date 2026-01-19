@@ -32,6 +32,15 @@ async def handle_pull_request_opened(event: WebhookEvent) -> dict:
             "pr_number": pr.number
         }
     
+    # Skip PRs created by the bot (prevent infinite loop)
+    if pr.title.startswith("Refactored:") or "Auto-Refractor" in pr.title or pr.title.startswith("🤖"):
+        logger.info(f"Skipping bot-created PR #{pr.number}")
+        return {
+            "status": "skipped",
+            "reason": "bot-created PR",
+            "pr_number": pr.number
+        }
+    
     try:
         # Initialize GitHub client
         client = Githubclient(repo.full_name, repo.default_branch)
@@ -117,9 +126,9 @@ async def handle_pull_request_opened(event: WebhookEvent) -> dict:
                 logger.info(f"Successfully created refactored PR #{refactored_pr.number}")
                 
                 # Comment on original PR with link to refactored PR
-                comment = f"""🤖 **Auto-Refractor Complete!**
+                comment = f"""**Auto-Refractor Analysis Complete**
 
-✅ Created refactored PR: #{refactored_pr.number}
+Created refactored PR: #{refactored_pr.number}
 
 **Files processed:** {len([r for r in results if r['status'] == 'success'])}/{len(results)}
 
@@ -131,9 +140,9 @@ View the refactored code and quality scores in PR #{refactored_pr.number}
             logger.error(f"Error creating refactored PR: {e}")
             # Still comment on original PR even if PR creation fails
             successful = len([r for r in results if r["status"] == "success"])
-            comment = f"""⚠️ **Auto-Refractor Analysis Complete**
+            comment = f"""**Auto-Refractor Analysis Complete**
 
-✅ Processed {successful}/{len(results)} files successfully
+Processed {successful}/{len(results)} files successfully
 
 Note: Failed to create refactored PR. Error: {str(e)}
 """
