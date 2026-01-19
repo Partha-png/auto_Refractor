@@ -1,6 +1,7 @@
 """Application settings using Pydantic for validation."""
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 from typing import Optional, Dict, Any
 import os
 
@@ -9,13 +10,13 @@ class Settings(BaseSettings):
     """Application configuration settings."""
     
     # GitHub Configuration
-    github_token: str
-    github_webhook_secret: Optional[str] = None
-    github_repo_owner: Optional[str] = None
-    github_repo_name: Optional[str] = None
+    github_token: str = Field(..., env='GITHUB_TOKEN')
+    github_webhook_secret: Optional[str] = Field(None, env='GITHUB_WEBHOOK_SECRET')
+    github_repo_owner: Optional[str] = Field(None, env='GITHUB_REPO_OWNER')
+    github_repo_name: Optional[str] = Field(None, env='GITHUB_REPO_NAME')
     
     # LLM Configuration
-    groq_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = Field(None, env='GROQ_API_KEY')
     llm_provider: str = "groq"  # "groq" or "ollama"
     llm_model: str = "llama-3.1-8b-instant"
     llm_temperature: float = 0.7
