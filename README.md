@@ -16,7 +16,7 @@ Auto-Refractor is an intelligent GitHub bot that automatically analyzes and refa
 - **LLM-Powered Refactoring**: Uses Groq's LLaMA models to intelligently refactor code
 - **Quality Metrics**: Calculates and compares code quality scores before and after refactoring
 - **Automatic PR Creation**: Creates new pull requests with refactored code
-- **Multi-Language Support**: Currently supports Python, with extensibility for JavaScript, Java, and more
+- **Multi-Language Support**: Supports Python, JavaScript, TypeScript, Java, C++, C, Go, and Rust
 - **GitHub Integration**: Seamless webhook integration with GitHub repositories
 - **Professional Output**: Clean, production-ready code without LLM artifacts
 
@@ -223,9 +223,13 @@ auto_Refractor/
 ### Supported Languages
 
 - ✅ Python (`.py`)
-- 🚧 JavaScript (`.js`) - Planned
-- 🚧 Java (`.java`) - Planned
-- 🚧 C++ (`.cpp`) - Planned
+- ✅ JavaScript (`.js`)
+- ✅ Java (`.java`)
+- ✅ C++ (`.cpp`, `.cc`, `.cxx`)
+- ✅ C (`.c`)
+- ✅ TypeScript (`.ts`)
+- ✅ Go (`.go`)
+- ✅ Rust (`.rs`)
 
 ---
 
@@ -343,14 +347,16 @@ Contributions are welcome! Please follow these steps:
 
 ## Roadmap
 
-- [ ] Support for JavaScript/TypeScript
-- [ ] Support for Java
-- [ ] Custom refactoring rules
+- [x] Multi-language support (Python, JavaScript, Java, C++, Go, Rust)
+- [ ] Custom refactoring rules configuration
 - [ ] Integration with CI/CD pipelines
 - [ ] Web dashboard for analytics
 - [ ] Multi-repository support
 - [ ] Configurable quality thresholds
 - [ ] Slack/Discord notifications
+- [ ] Support for additional languages (Swift, Kotlin, PHP)
+- [ ] Code review suggestions and comments
+- [ ] Performance benchmarking
 
 ---
 
