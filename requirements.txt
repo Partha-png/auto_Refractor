@@ -9,7 +9,7 @@ langchain-community==0.2.16
 langgraph==0.2.28
 PyGithub==2.1.1
 python-dotenv==1.0.1
-pydantic==2.6.1
+pydantic==2.7.4
 
 # ============================================
 # Configuration Management
