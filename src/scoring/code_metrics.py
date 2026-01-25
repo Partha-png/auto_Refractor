@@ -79,7 +79,7 @@ class MaintainabilityIndexMetric(BaseMetric):
     """
     
     @property
-    def metric_type() -> MetricType:
+    def metric_type(self) -> MetricType:
         return MetricType.MAINTAINABILITY_INDEX
     
     @property
