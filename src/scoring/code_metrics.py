@@ -6,6 +6,8 @@ from radon.raw import analyze
 from src.scoring.metrics import BaseMetric, MetricResult
 from src.config.constants import MetricType
 from src.utils.logger import get_logger
+from src.ingestion.parser import parse_content
+from src.analysis.ast_complexity import calculate_complexity
 
 logger = get_logger(__name__)
 
@@ -32,45 +34,28 @@ class CyclomaticComplexityMetric(BaseMetric):
     
     def calculate(self, code: str, language: str) -> MetricResult:
         """Calculate average cyclomatic complexity."""
-        if language != "python":
-            # Radon only supports Python
-            return MetricResult(
-                metric_type=self.metric_type,
-                score=0.0,
-                description=self.description,
-                details={"error": f"Language {language} not supported"}
-            )
-        
+        # Use Tree-sitter AST for all supported languages
         try:
-            # Calculate complexity for all functions/methods
-            complexities = cc_visit(code)
+            tree = parse_content(code, language)
             
-            if not complexities:
+            if not tree:
                 return MetricResult(
                     metric_type=self.metric_type,
-                    score=1.0,  # Minimal complexity
+                    score=0.0,
                     description=self.description,
-                    details={"functions": 0}
+                    details={"error": "Could not parse code"}
                 )
             
-            # Calculate average complexity
-            avg_complexity = sum(c.complexity for c in complexities) / len(complexities)
-            
-            # Get max complexity
-            max_complexity = max(c.complexity for c in complexities)
+            # Calculate complexity
+            complexity = calculate_complexity(tree, language)
             
             return MetricResult(
                 metric_type=self.metric_type,
-                score=avg_complexity,
+                score=float(complexity),
                 description=self.description,
                 details={
-                    "average": avg_complexity,
-                    "max": max_complexity,
-                    "functions": len(complexities),
-                    "breakdown": [
-                        {"name": c.name, "complexity": c.complexity}
-                        for c in complexities
-                    ]
+                    "average": complexity, # AST gives total complexity usually, or we can assume it's one block if small
+                    "functions": 1, # Simplified for now
                 }
             )
         
@@ -84,6 +69,7 @@ class CyclomaticComplexityMetric(BaseMetric):
             )
 
 
+
 class MaintainabilityIndexMetric(BaseMetric):
     """
     Maintainability Index metric.
@@ -93,7 +79,7 @@ class MaintainabilityIndexMetric(BaseMetric):
     """
     
     @property
-    def metric_type(self) -> MetricType:
+    def metric_type() -> MetricType:
         return MetricType.MAINTAINABILITY_INDEX
     
     @property
@@ -101,43 +87,85 @@ class MaintainabilityIndexMetric(BaseMetric):
         return "Overall maintainability score (0-100, higher is better)"
     
     def calculate(self, code: str, language: str) -> MetricResult:
-        """Calculate maintainability index."""
-        if language != "python":
-            return MetricResult(
-                metric_type=self.metric_type,
-                score=0.0,
-                description=self.description,
-                details={"error": f"Language {language} not supported"}
-            )
+        """Calculate maintainability index (language-agnostic approach)."""
         
+        # For Python, use radon if available
+        if language == "python":
+            try:
+                mi_result = mi_visit(code, multi=True)
+                
+                # Handle different return types from radon
+                if isinstance(mi_result, (int, float)):
+                    mi_score = float(mi_result)
+                elif isinstance(mi_result, list) and len(mi_result) > 0:
+                    if hasattr(mi_result[0], 'mi'):
+                        mi_score = sum(item.mi for item in mi_result) / len(mi_result)
+                    else:
+                        mi_score = sum(mi_result) / len(mi_result)
+                else:
+                    mi_score = None
+                
+                if mi_score is not None:
+                    mi_score = max(0.0, min(100.0, mi_score))
+                    return MetricResult(
+                        metric_type=self.metric_type,
+                        score=mi_score,
+                        description=self.description,
+                        details={"method": "radon", "value": mi_score}
+                    )
+            except Exception as e:
+                logger.debug(f"Radon MI failed, using fallback: {e}")
+        
+        # FALLBACK: Language-agnostic heuristic
+        # Based on: complexity, LOC, comment ratio
         try:
-            # Calculate MI for all blocks
-            mi_scores = mi_visit(code, multi=True)
+            from src.analysis.ast_complexity import calculate_complexity
+            from src.ingestion.parser import parse_content
             
-            if not mi_scores:
-                return MetricResult(
-                    metric_type=self.metric_type,
-                    score=100.0,  # Perfect score for empty/simple code
-                    description=self.description,
-                    details={"blocks": 0}
-                )
+            # Get complexity
+            tree = parse_content(code, language)
+            if tree:
+                complexity = calculate_complexity(tree, code)
+            else:
+                complexity = 10
             
-            # Calculate average MI
-            avg_mi = sum(mi_scores) / len(mi_scores)
+            # Get LOC
+            lines = [line for line in code.split('\n') if line.strip()]
+            loc = len(lines)
             
-            # MI is typically 0-100, higher is better
-            # Clamp to 0-100 range
-            avg_mi = max(0, min(100, avg_mi))
+            # Get comment ratio (rough estimate)
+            comment_chars = {
+                'python': '#',
+                'javascript': '//',
+                'java': '//',
+                'cpp': '//',
+                'c': '//',
+                'ruby': '#',
+                'go': '//',
+                'rust': '//'
+            }
+            comment_char = comment_chars.get(language, '#')
+            comments = sum(1 for line in lines if line.strip().startswith(comment_char))
+            comment_ratio = comments / loc if loc > 0 else 0
+            
+            # Heuristic formula (similar to MI concept)
+            #  High MI = Low complexity + Reasonable size + Good comments
+            base_score = 100
+            base_score -= min(complexity * 2, 40)  # Penalize complexity (max -40)
+            base_score -= min(loc / 10, 30)         # Penalize large files (max -30)
+            base_score += min(comment_ratio * 50, 20)  # Reward comments (max +20)
+            
+            mi_score = max(0.0, min(100.0, base_score))
             
             return MetricResult(
                 metric_type=self.metric_type,
-                score=avg_mi,
+                score=mi_score,
                 description=self.description,
                 details={
-                    "average": avg_mi,
-                    "blocks": len(mi_scores),
-                    "min": min(mi_scores),
-                    "max": max(mi_scores),
+                    "method": "heuristic",
+                    "complexity": complexity,
+                    "loc": loc,
+                    "comment_ratio": round(comment_ratio, 2)
                 }
             )
         
@@ -145,7 +173,7 @@ class MaintainabilityIndexMetric(BaseMetric):
             logger.error(f"Error calculating maintainability index: {e}")
             return MetricResult(
                 metric_type=self.metric_type,
-                score=0.0,
+                score=50.0,
                 description=self.description,
                 details={"error": str(e)}
             )

@@ -10,9 +10,10 @@ logger = get_logger(__name__)
 
 
 class Linter:
-    def __init__(self, tree, code):
+    def __init__(self, tree, code, language="python"):
         self.tree = tree
         self.code = code
+        self.language = language
         self.rules = [
             unused_variables,
             unused_imports,
@@ -21,12 +22,15 @@ class Linter:
             check_function_length,
             deep_nesting
         ]
-        logger.debug(f"Initialized linter with {len(self.rules)} rules")
+        logger.debug(f"Initialized linter with {len(self.rules)} rules for language: {language}")
     
     def run(self, tree, code):
-        logger.info(f"Running {len(self.rules)} linting rules")
+        logger.info(f"Running {len(self.rules)} linting rules for {self.language}")
         issues = []
         for rule in self.rules:
+            # Pass language to rules that might need it
+            # For now, rules still use (tree, code) signature
+            # They can infer behavior from tree node types
             rule_issues = rule(tree, code)
             issues.extend(rule_issues)
             logger.debug(f"Rule {rule.__name__} found {len(rule_issues)} issues")

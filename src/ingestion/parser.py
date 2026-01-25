@@ -26,11 +26,38 @@ def parser_code(file_paths):
             tree_parser = Parser()
             tree_parser.set_language(language)
             file["tree"] = tree_parser.parse(content.encode("utf-8"))
+            file["language"] = lang # Store language string for downstream use
         except Exception as e:
             logger.error(f"Could not parse {path} ({lang}): {e}")
             file["tree"] = None
 
     return results
+
+def parse_content(code: str, language_name: str):
+    """
+    Parse code string into AST directly.
+    
+    Args:
+        code: Source code string
+        language_name: Language name (python, javascript, java, cpp, etc.)
+        
+    Returns:
+        Tree-sitter AST or None
+    """
+    if not code.strip():
+        return None
+        
+    try:
+        # Normalize language name
+        if language_name == "js": language_name = "javascript"
+        
+        language = get_language(language_name)
+        tree_parser = Parser()
+        tree_parser.set_language(language)
+        return tree_parser.parse(code.encode("utf-8"))
+    except Exception as e:
+        logger.error(f"Could not parse content for {language_name}: {e}")
+        return None
 
 if __name__ == "__main__":
     test_files = ["sample.py", "sample.js", "sample.java", "sample.cpp"]

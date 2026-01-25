@@ -7,24 +7,33 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+from src.config.constants import MetricType
+
 def format_score_report(
-    original_scores: Dict[str, float],
-    refactored_scores: Dict[str, float],
+    original_scores: Dict[str, Any],
+    refactored_scores: Dict[str, Any],
     filename: str
 ) -> str:
     """
     Format score comparison as markdown report.
     
     Args:
-        original_scores: Scores before refactoring
+        original_scores: Scores before refactoring (Dict[MetricType, MetricResult])
         refactored_scores: Scores after refactoring
         filename: Name of the file
         
     Returns:
         str: Markdown formatted report
     """
+    # Helper to extract float score
+    def get_score(scores, key):
+        val = scores.get(key, 0)
+        if hasattr(val, 'score'):
+            return val.score
+        return float(val)
+
     # Calculate overall improvement
-    orig_overall = original_scores.get("overall_score", 0)
+    orig_overall = original_scores.get("overall_score", 0) # This might be float
     refact_overall = refactored_scores.get("overall_score", 0)
     improvement = refact_overall - orig_overall
     
@@ -42,15 +51,16 @@ def format_score_report(
 """
     
     # Add each metric
+    # Use the values from MetricType
     metrics = [
-        ("BLEU Score", "bleu_score"),
-        ("Code Complexity", "complexity_score"),
-        ("Maintainability", "maintainability_score")
+        ("BLEU Score", MetricType.BLEU),
+        ("Code Complexity", MetricType.CYCLOMATIC_COMPLEXITY),
+        ("Maintainability", MetricType.MAINTAINABILITY_INDEX)
     ]
     
     for metric_name, metric_key in metrics:
-        orig = original_scores.get(metric_key, 0)
-        refact = refactored_scores.get(metric_key, 0)
+        orig = get_score(original_scores, metric_key)
+        refact = get_score(refactored_scores, metric_key)
         diff = refact - orig
         
         if diff > 0:

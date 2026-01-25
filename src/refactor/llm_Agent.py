@@ -10,10 +10,11 @@ logger = get_logger(__name__)
 class LinterAgent:
     """Agent wrapper for Linter - finds code quality issues."""
     
-    def __init__(self, tree, code):
+    def __init__(self, tree, code, language="python"):
         self.tree = tree
         self.code = code
-        self.linter = Linter(tree, code)
+        self.language = language
+        self.linter = Linter(tree, code, language)
     
     def run(self):
         try:
@@ -28,10 +29,10 @@ class LinterAgent:
 class ComplexityAgent:
     """Agent wrapper for Complexity - calculates code metrics."""
     
-    def __init__(self, code, tree):
+    def __init__(self, code, tree, language="python"):
         self.code = code
         self.tree = tree
-        self.complexity = Complexity(code, tree)
+        self.complexity = Complexity(code, tree, language)
     
     def run(self):
         try:
@@ -41,49 +42,49 @@ class ComplexityAgent:
         except Exception as e:
             logger.error(f"Error in ComplexityAgent: {e}")
             return {"agent_invoked": "complexity_agent", "metrics": {}, "error": str(e)}
-class LoaderAgent:
-    """Agent wrapper for file loading."""
+# class LoaderAgent:
+#     """Agent wrapper for file loading."""
     
-    def __init__(self, file_path):
-        self.file_path = file_path
+#     def __init__(self, file_path):
+#         self.file_path = file_path
     
-    def run(self):
-        """Load file and return content."""
-        try:
-            files = load_files_from_directory([self.file_path])
-            if not files:
-                logger.error(f"No files loaded from {self.file_path}")
-                return {"agent_invoked": "loader_agent", "file": None, "error": "No files found"}
+#     def run(self):
+#         """Load file and return content."""
+#         try:
+#             files = load_files_from_directory([self.file_path])
+#             if not files:
+#                 logger.error(f"No files loaded from {self.file_path}")
+#                 return {"agent_invoked": "loader_agent", "file": None, "error": "No files found"}
             
-            logger.debug(f"LoaderAgent loaded {self.file_path}")
-            return {"agent_invoked": "loader_agent", "file": files[0]}
-        except Exception as e:
-            logger.error(f"Error in LoaderAgent: {e}")
-            return {"agent_invoked": "loader_agent", "file": None, "error": str(e)}
+#             logger.debug(f"LoaderAgent loaded {self.file_path}")
+#             return {"agent_invoked": "loader_agent", "file": files[0]}
+#         except Exception as e:
+#             logger.error(f"Error in LoaderAgent: {e}")
+#             return {"agent_invoked": "loader_agent", "file": None, "error": str(e)}
 
 
-class ParserAgent:
-    """Agent wrapper for code parsing."""
+# class ParserAgent:
+#     """Agent wrapper for code parsing."""
     
-    def __init__(self, file_path):
-        self.file_path = file_path
+#     def __init__(self, file_path):
+#         self.file_path = file_path
     
-    def run(self):
-        """Parse file and return AST."""
-        try:
-            results = parser_code([self.file_path])
-            if not results:
-                logger.error(f"No results from parsing {self.file_path}")
-                return {"agent_invoked": "parser_agent", "error": "No parse results"}
+#     def run(self):
+#         """Parse file and return AST."""
+#         try:
+#             results = parser_code([self.file_path])
+#             if not results:
+#                 logger.error(f"No results from parsing {self.file_path}")
+#                 return {"agent_invoked": "parser_agent", "error": "No parse results"}
             
-            file = results[0]
-            logger.debug(f"ParserAgent parsed {self.file_path}")
-            return {
-                "agent_invoked": "parser_agent",
-                "ast_tree": file["tree"],
-                "code": file["content"],
-                "path": file["path"]
-            }
-        except Exception as e:
-            logger.error(f"Error in ParserAgent: {e}")
-            return {"agent_invoked": "parser_agent", "error": str(e)}
+#             file = results[0]
+#             logger.debug(f"ParserAgent parsed {self.file_path}")
+#             return {
+#                 "agent_invoked": "parser_agent",
+#                 "ast_tree": file["tree"],
+#                 "code": file["content"],
+#                 "path": file["path"]
+#             }
+#         except Exception as e:
+#             logger.error(f"Error in ParserAgent: {e}")
+#             return {"agent_invoked": "parser_agent", "error": str(e)}

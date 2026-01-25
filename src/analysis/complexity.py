@@ -1,14 +1,16 @@
+from src.analysis.ast_complexity import calculate_complexity
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 class Complexity:
-    def __init__(self, code, tree):
+    def __init__(self, code, tree, language="python"):
         self.code = code
         self.tree = tree
+        self.language = language
         self.lines = code.splitlines()
-        logger.debug(f"Initialized complexity analyzer for {len(self.lines)} lines of code")
+        logger.debug(f"Initialized complexity analyzer for {len(self.lines)} lines of code ({language})")
     
     def run(self):
         logger.info("Calculating complexity metrics")
@@ -21,14 +23,12 @@ class Complexity:
         return metrics
     
     def cyclomatic(self):
-        count = 1
-        keywords = ["if", "elif", "for", "while", "case"]
-        for line in self.lines:
-            for kw in keywords:
-                if kw in line:
-                    count += 1
-        logger.debug(f"Cyclomatic complexity: {count}")
-        return count
+        """Calculate cyclomatic complexity using Tree-sitter AST."""
+        if not self.tree:
+            logger.warning("No AST found, complexity defaults to 1")
+            return 1
+            
+        return calculate_complexity(self.tree, self.language)
     
     def line_of_code(self):
         count = 0
@@ -39,9 +39,14 @@ class Complexity:
         return count
     
     def is_nesting(self):
+        """
+        Estimate nesting depth.
+        TODO: Use AST for this too in future iterations.
+        """
         max_depth = 0
         for line in self.lines:
             striped = line.lstrip()
+            if not striped: continue
             indent = len(line) - len(striped)
             level = indent // 4
             max_depth = max(level, max_depth)
