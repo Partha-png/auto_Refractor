@@ -100,13 +100,39 @@ async def handle_pull_request_opened(event: WebhookEvent) -> dict:
                     "error": str(e)
                 })
         
-        # Extract scores from first successful result
+        # Extract and format scores for PR description
         original_scores = None
         refactored_scores = None
+        improvement = None
+        
         for result in results:
             if result["status"] == "success" and result.get("scores"):
-                original_scores = result["scores"].get("original")
-                refactored_scores = result["scores"].get("refactored")
+                scores = result["scores"]
+                
+                # Convert MetricResult objects to simple dict
+                if scores.get("original"):
+                    original_dict = scores["original"]
+                    original_scores = {
+                        "overall": sum(m.score for m in original_dict.values()) / len(original_dict) if original_dict else 0,
+                    }
+                    # Add individual metrics
+                    for metric_type, metric_result in original_dict.items():
+                        metric_name = str(metric_type).split('.')[-1].lower()
+                        original_scores[metric_name] = metric_result.score
+                
+                if scores.get("refactored"):
+                    refactored_dict = scores["refactored"]
+                    refactored_scores = {
+                        "overall": sum(m.score for m in refactored_dict.values()) / len(refactored_dict) if refactored_dict else 0,
+                    }
+                    # Add individual metrics
+                    for metric_type, metric_result in refactored_dict.items():
+                        metric_name = str(metric_type).split('.')[-1].lower()
+                        refactored_scores[metric_name] = metric_result.score
+                
+                # Get improvement percentage
+                improvement = scores.get("improvement", 0)
+                
                 break
         
         # Create refactored PR with scores
@@ -120,7 +146,8 @@ async def handle_pull_request_opened(event: WebhookEvent) -> dict:
                     original_pr_title=pr.title,
                     refactored_files=results,
                     original_scores=original_scores,
-                    refactored_scores=refactored_scores
+                    refactored_scores=refactored_scores,
+                    improvement=improvement
                 )
                 
                 logger.info(f"Successfully created refactored PR #{refactored_pr.number}")

@@ -23,7 +23,8 @@ def generate_branch_name(pr_number: int) -> str:
 
 def format_score_comparison(
     original_scores: Optional[Dict[str, float]] = None,
-    refactored_scores: Optional[Dict[str, float]] = None
+    refactored_scores: Optional[Dict[str, float]] = None,
+    improvement: Optional[float] = None
 ) -> str:
     """
     Format score comparison as markdown table.
@@ -31,6 +32,7 @@ def format_score_comparison(
     Args:
         original_scores: Scores before refactoring
         refactored_scores: Scores after refactoring
+        improvement: Overall improvement percentage
         
     Returns:
         str: Markdown formatted table
@@ -45,28 +47,50 @@ def format_score_comparison(
         diff = refact - orig
         
         if diff > 0:
-            return f"+{diff:.1f}"
+            return f"🟢 +{diff:.1f}"
         elif diff < 0:
-            return f"{diff:.1f}"
+            return f"🔴 {diff:.1f}"
         else:
-            return "0.0"
+            return "⚪ 0.0"
+    
+    # Improvement status
+    if improvement is not None:
+        if improvement > 0:
+            status = f"✅ **Code Quality Improved by {improvement:.1f}%**"
+        elif improvement < 0:
+            status = f"⚠️ **Code Quality Decreased by {abs(improvement):.1f}%**"
+        else:
+            status = "⚪ **No significant change**"
+    else:
+        status = ""
     
     # Build table
-    table = """## Quality Score Comparison
+    table = f"""## Quality Score Comparison
+
+{status}
 
 | Metric | Before | After | Change |
 |--------|--------|-------|--------|
 """
     
-    metrics = ["overall", "bleu", "complexity", "maintainability"]
-    for metric in metrics:
-        orig = original_scores.get(metric, 0)
-        refact = refactored_scores.get(metric, 0)
-        change = get_change(metric)
-        
-        table += f"| **{metric.title()}** | {orig:.1f} | {refact:.1f} | {change} |\n"
+    metrics = [
+        ("overall", "Overall Score"),
+        ("bleu", "BLEU Similarity"),
+        ("cyclomatic_complexity", "Complexity"),
+        ("maintainability_index", "Maintainability"),
+        ("lines_of_code", "Lines of Code")
+    ]
+    
+    for metric_key, metric_label in metrics:
+        if metric_key in original_scores and metric_key in refactored_scores:
+            orig = original_scores[metric_key]
+            refact = refactored_scores[metric_key]
+            change = get_change(metric_key)
+            
+            table += f"| **{metric_label}** | {orig:.1f} | {refact:.1f} | {change} |\n"
     
     return table
+
 
 
 def format_pr_body(
@@ -131,7 +155,8 @@ async def create_refactored_pr(
     original_pr_title: str,
     refactored_files: List[Dict[str, Any]],
     original_scores: Optional[Dict[str, float]] = None,
-    refactored_scores: Optional[Dict[str, float]] = None
+    refactored_scores: Optional[Dict[str, float]] = None,
+    improvement: Optional[float] = None
 ) -> Any:
     """
     Create PR with refactored code.
@@ -150,6 +175,7 @@ async def create_refactored_pr(
         refactored_files: List of dicts with {filename, content, sha}
         original_scores: Scores before refactoring (optional)
         refactored_scores: Scores after refactoring (optional)
+        improvement: Overall improvement percentage (optional)
         
     Returns:
         Created PR object
